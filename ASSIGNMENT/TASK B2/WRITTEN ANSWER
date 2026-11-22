@@ -1,0 +1,105 @@
+PART B – IMPLEMENTATION & EXPERIMENTAL INVESTIGATION
+TASK B2 – ENGINEER ERROR CONDITIONS (5 Marks)
+1. Error Testing
+The following error conditions should be tested:
+Test	Input/Error	Expected Result
+1	Negative charges	std::invalid_argument
+2	Claim above insurance cover	ClaimError
+3	Unknown package code	Exception thrown
+4	Text instead of number	std::invalid_argument from std::stod
+5	Memory allocation failure	std::bad_alloc
+6	Unexpected error	Caught by catch(...)
+
+A catch(...) block at the top level prevents an unhandled exception from terminating the program unexpectedly.
+
+2. Predict the Output
+Predicted Output
+ok done caught negative [log too large] caught too large
+
+
+Explanation
+- 100.0 is valid, so validate() prints ok and main() prints done.
+- -5.0 throws std::invalid_argument("negative"). It is not caught inside process() because the handler only catches std::out_of_range. It is caught in main().
+- 2e6 throws std::out_of_range("too large"). It is caught inside process(), logged, and rethrown using throw;.
+- The rethrown exception is caught in main().
+Only the out_of_range exception is logged inside process() because that is the only exception type handled by its catch block.
+3. Complete the Code
+#include <iostream>
+#include <stdexcept>
+
+class ClaimError : public std::runtime_error {
+public:
+    using std::runtime_error::runtime_error;
+};
+
+double approve(double billed, double cover)
+{
+    // TODO 1
+    if (billed < 0 || cover < 0)
+        throw std::invalid_argument("negative amount");
+
+    if (billed > cover)
+        throw ClaimError("exceeds cover");
+
+    return billed;
+}
+
+double settle(double billed, double cover)
+{
+    try {
+        return approve(billed, cover);
+    }
+    catch (const ClaimError& e) {
+        // TODO 2
+        std::cout << "audit: " << e.what() << '\n';
+        throw;
+    }
+}
+
+int main()
+{
+    double cases[][2] = {
+        {40000, 50000},
+        {60000, 50000},
+        {-1, 50000}
+    };
+
+    for (auto& c : cases) {
+        try {
+            double paid = settle(c[0], c[1]);
+            std::cout << "approved " << paid << '\n';
+        }
+        catch (const ClaimError& e) {
+            std::cout << "claim rejected: " << e.what() << '\n';
+        }
+        catch (const std::exception& e) {
+            std::cout << "error: " << e.what() << '\n';
+        }
+    }
+}
+
+
+Expected Output
+approved 40000
+audit: exceeds cover
+claim rejected: exceeds cover
+error: negative amount
+
+
+
+4. Replace throw; with throw e;
+- throw; rethrows the same exception object, preserving its original type.
+- throw e; throws a copy of e. This may cause object slicing if the exception was derived from another exception class.
+Therefore, throw; is preferred when rethrowing an exception.
+5. Alternative Concept and Complexity Analysis
+Instead of throwing exceptions, invalid claims could be rejected using std::optional<double>. A valid claim returns a value, while an invalid claim returns std::nullopt.
+Invalid Claims	Exceptions	std::optional
+0%	Very low overhead	Very low overhead
+1%	Slight overhead for exceptions	Efficient
+50%	High overhead due to frequent exceptions	More efficient
+
+Time Complexity: Both approaches are O(n) for processing n claims in the normal case. However, exceptions are more expensive when frequently thrown.
+
+Space Complexity: Both require O(1) extra space per result. std::optional stores the value and a validity indicator, while exceptions use exception-handling storage when thrown.
+
+Conclusion: Exceptions are suitable for rare and unexpected errors, while std::optional is more efficient when invalid claims are expected frequently.
