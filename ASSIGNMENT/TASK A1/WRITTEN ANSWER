@@ -1,0 +1,143 @@
+Give the whole Assignment 5 answer"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Absolutely. I'll make the entire Assignment 5 in copy-paste-ready format, following your PDF's exact task order, including:
+- Part A: A1–A5
+- Part B: B1–B4
+- All "Complete the Code" programs
+- All "Predict the Output" questions
+- Alternative concepts and complexity analysis
+- Experimental test tables and conclusions
+- Final engineering decision
+I'll keep the explanations simple and student-friendly, while still covering the rubric requirements.
+
+Because the assignment is 16 pages and quite long, I'll send it in organized parts so nothing gets cut off.
+ASSIGNMENT 5 – CO5
+Reliable Software with Runtime Polymorphism and Exceptions
+
+PART A – DESIGN (25 MARKS)
+TASK A1 – DESIGN THE POLYMORPHIC BILL HIERARCHY (7 Marks)
+A1.1 – Identify the Common Interface (2 Marks)
+Common data members:
+- Patient name
+- Bill ID
+- Date of billing
+Common operations:
+- total() – calculates the total bill amount.
+- type() – returns the type of bill.
+- print() – displays bill details.
+All bills share a common interface, but each bill calculates its total differently.
+A1.2 – Design the Hierarchy (3 Marks)
+Abstract Base Class: Bill
+- Contains common data members such as patient name and bill ID.
+- Contains pure virtual functions total() and type().
+- Contains a virtual destructor.
+- Derived classes override the virtual functions.
+Derived classes:
+1. OutPatientBill – consultation charges + test charges.
+2. InPatientBill – room charges + procedure charges + medicine charges.
+3. DayCareBill – fixed package charges.
+4. EmergencyBill – base charges + time-based charges.
+UML Class Diagram:
+                  ┌──────────────────────────┐
+                  │       <<abstract>>      │
+                  │           Bill          │
+                  ├──────────────────────────┤
+                  │ - patientName           │
+                  │ - billID                │
+                  ├──────────────────────────┤
+                  │ + total() : double      │
+                  │   <<pure virtual>>      │
+                  │ + type() : string       │
+                  │   <<pure virtual>>      │
+                  │ + print() : void        │
+                  │ + ~Bill() : virtual      │
+                  └────────────┬─────────────┘
+                               │
+             ┌─────────────────┼──────────────────┬──────────────────┐
+             │                 │                  │                  │
+             ▼                 ▼                  ▼                  ▼
+ ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+ │ OutPatientBill  │ │ InPatientBill   │ │ DayCareBill     │ │ EmergencyBill   │
+ ├─────────────────┤ ├─────────────────┤ ├─────────────────┤ ├─────────────────┤
+ │ consultation    │ │ days            │ │ packagePrice    │ │ baseCharge      │
+ │ testCharges     │ │ perDay          │ │                 │ │ timeCharges     │
+ ├─────────────────┤ │ procedure       │ ├─────────────────┤ ├─────────────────┤
+ │ total() override│ ├─────────────────┤ │ total() override │ │ total() override│
+ │ type() override │ │ total() override│ │ type() override  │ │ type() override │
+ └─────────────────┘ │ type() override │ └─────────────────┘ └─────────────────┘
+                     └─────────────────┘
+
+
+Function implementation logic:
+Bill Type	total() calculation
+OutPatientBill	Consultation + Test charges
+InPatientBill	(Days × Room charge per day) + Procedure + Medicines
+DayCareBill	Package price
+EmergencyBill	Base charge + Time-based charges
+
+total() and type() are pure virtual functions in the base class and are overridden in every derived class. print() can be a normal function that calls the virtual functions.
+A1.3 – Process All Bills Together (2 Marks)
+Pseudocode:
+ALGORITHM ProcessAllBills
+
+BEGIN
+
+    totalAmount ← 0
+
+    FOR each bill in bills DO
+        totalAmount ← totalAmount + bill.total()
+        bill.print()
+    END FOR
+
+    DISPLAY "Total Hospital Billing Amount:", totalAmount
+
+END
+
+
+The array contains base-class pointers pointing to different derived bill objects. Runtime polymorphism ensures that the correct total() function is called for each bill.
+Alternative Concept and Complexity Analysis
+If a single Bill structure with a type field and switch statement were used instead of an abstract base class, each bill would store its type and all required billing data.
+struct Bill {
+    int type;
+    double amount1, amount2, amount3;
+
+    double total() {
+        switch(type) {
+            case 1:
+                return amount1 + amount2;
+
+            case 2:
+                return amount1 + amount2 + amount3;
+
+            case 3:
+                return amount1;
+
+            case 4:
+                return amount1 + amount2;
+        }
+        return 0;
+    }
+};
+
+
+Operation	Polymorphism	Switch-based design
+Total time for n bills	O(n)	O(n)
+Time per bill	O(1)	O(1)
+Space complexity	O(n)	O(n)
+Adding a new bill type	Add a new derived class	Modify the structure and switch
+Maintainability	High	Lower as bill types increase
+
+Conclusion: The polymorphic design is better because new bill types can be added by creating new derived classes without modifying the existing billing system. This follows the Open-Closed Principle.
