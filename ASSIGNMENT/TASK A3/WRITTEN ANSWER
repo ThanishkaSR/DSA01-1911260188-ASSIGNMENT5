@@ -1,0 +1,79 @@
+TASK A3 – DESIGN WITH ABSTRACT CLASSES (5 Marks)
+A3.1 – Payer Interface (3 Marks)
+An abstract class Payer is designed with a pure virtual function amountCovered(const Bill&) to calculate the amount covered for a bill.
+
+Derived classes:
+1. SelfPay – The patient pays the entire bill amount.
+2. Insurance – Covers the bill based on the cover limit and co-payment percentage.
+3. GovernmentScheme – Covers the bill according to fixed package rates.
+Abstract Class Design
+class Payer {
+public:
+    virtual double amountCovered(const Bill& bill) const = 0;
+    virtual ~Payer() = default;
+};
+
+class SelfPay : public Payer {
+public:
+    double amountCovered(const Bill& bill) const override;
+};
+
+class Insurance : public Payer {
+private:
+    double coverLimit;
+    double coPaymentPercentage;
+
+public:
+    double amountCovered(const Bill& bill) const override;
+};
+
+class GovernmentScheme : public Payer {
+public:
+    double amountCovered(const Bill& bill) const override;
+};
+
+
+Working:
+- SelfPay → Patient pays 100% of the bill.
+- Insurance → Insurance pays according to the cover limit and co-payment percentage.
+- GovernmentScheme → Coverage is calculated using fixed package rates.
+
+A3.2 – Extension (2 Marks)
+A new payer, such as CorporateTieUp, can be added by creating a new derived class from Payer and overriding amountCovered().
+class CorporateTieUp : public Payer {
+public:
+    double amountCovered(const Bill& bill) const override {
+        return bill.total() * 0.80;
+    }
+};
+
+
+This payer covers 80% of the bill amount.
+
+The existing Payer, SelfPay, Insurance and GovernmentScheme classes do not need to be modified. This follows the Open-Closed Principle, which states that software should be open for extension but closed for modification.
+
+Alternative Concept and Complexity Analysis
+Instead of using abstract classes, payer policies can be implemented using function pointers or std::function.
+
+Example:
+double selfPay(const Bill& b) {
+    return b.total();
+}
+
+double insurancePay(const Bill& b) {
+    return b.total() * 0.80;
+}
+
+double governmentPay(const Bill& b) {
+    return b.total() * 0.60;
+}
+
+
+Feature	Abstract Payer Class	Function Pointer / std::function
+Time per call	O(1)	O(1)
+Space	Object data + vtable pointer	Function object/pointer + stored data
+Cover limit storage	Stored in derived class	Stored separately or captured in function
+Extension	Add a new derived class	Add a new policy function
+Maintainability	Structured and easy to extend	Flexible but may become less organized
+
+Conclusion: The abstract Payer class is more suitable for the hospital billing system because it provides a common interface, supports runtime polymorphism and allows new payer types to be added without modifying existing classes.
