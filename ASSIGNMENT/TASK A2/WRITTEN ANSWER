@@ -1,0 +1,83 @@
+TASK A2 – UNDERSTAND RUNTIME BINDING (5 Marks)
+A2.1 – Early and Late Binding (2 Marks)
+Early Binding (Compile-Time Binding):
+The function call is resolved during compilation. It is generally used with non-virtual functions. The compiler decides which function to call based on the pointer or object type.
+
+Late Binding (Run-Time Binding):
+The function call is resolved during program execution. It occurs when a virtual function is called through a base-class pointer or reference. The actual object type determines which function is executed.
+
+Example:
+Bill* b = new OutPatientBill();
+b->total();
+
+
+Since total() is virtual, the OutPatientBill::total() function is called at runtime, even though b is a Bill*.
+
+A2.2 – The Virtual Table (2 Marks)
+A virtual table (vtable) is a table maintained by the compiler that stores pointers to virtual functions of a class.
+
+Bill vtable:
+Virtual Function	Function
+Destructor	Bill::~Bill()
+total()	Pure virtual
+type()	Pure virtual
+
+OutPatientBill vtable:
+Virtual Function	Function
+Destructor	OutPatientBill::~OutPatientBill()
+total()	OutPatientBill::total()
+type()	OutPatientBill::type()
+
+InPatientBill vtable:
+Virtual Function	Function
+Destructor	InPatientBill::~InPatientBill()
+total()	InPatientBill::total()
+type()	InPatientBill::type()
+
+How b->total() works:
+1. b points to an object of OutPatientBill.
+2. The program checks the object's vtable.
+3. The vtable contains the address of OutPatientBill::total().
+4. Therefore, OutPatientBill::total() is executed.
+
+A2.3 – Virtual Destructors (1 Mark)
+The base class Bill must have a virtual destructor because derived objects may be deleted through a base-class pointer.
+Bill* b = new OutPatientBill();
+delete b;
+
+
+If the destructor of Bill is not virtual, deleting the derived object through the base pointer causes undefined behaviour. A virtual destructor ensures that the derived destructor runs first, followed by the base destructor, properly releasing resources.
+
+Predict the Output
+Predicted Output:
+500 ~OPBill ~Bill
+
+
+Explanation:
+- b->show() calls show(), which is non-virtual.
+- Inside show(), total() is virtual, so runtime binding calls OPBill::total().
+- It returns 500.
+- When delete b is executed, the virtual destructor calls ~OPBill() first and then ~Bill().
+Why did show() reach OPBill::total()?
+Although show() is non-virtual, it calls the virtual function total(). The virtual function is resolved based on the actual object type at runtime, so OPBill::total() is called.
+If virtual is removed from ~Bill
+The destructor of the derived class will not be properly called when deleting through a Bill*. This causes undefined behaviour and may result in resource leaks. AddressSanitizer may report errors depending on the program and compiler.
+
+Alternative Concept and Complexity Analysis
+If total() were not virtual, the program could use dynamic_cast to identify each bill type and call the corresponding function.
+
+Example pseudocode:
+IF bill is OutPatientBill
+    CALL OutPatientBill total()
+ELSE IF bill is InPatientBill
+    CALL InPatientBill total()
+END IF
+
+
+Feature	Virtual Functions	dynamic_cast Approach
+Time per bill	O(1)	Up to O(k) casts
+Total time for n bills	O(n)	O(nk)
+Space	Vtable pointer per object	RTTI information and casting overhead
+Adding new bill type	Add new derived class	Modify type-checking code
+
+Conclusion: Runtime polymorphism is better because it allows the correct function to be called automatically and makes the code easier to extend and maintain.
