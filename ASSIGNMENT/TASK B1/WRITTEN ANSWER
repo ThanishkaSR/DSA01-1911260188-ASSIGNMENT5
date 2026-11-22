@@ -1,0 +1,148 @@
+TASK B1 – IMPLEMENT AND VALIDATE THE POLYMORPHIC BILLING (7 Marks)
+B1.1 – Validate the Implementation (2 Marks)
+Complete Code (TODO 1–3)
+Copy and paste this complete program:
+#include <iostream>
+#include <string>
+
+class Bill {
+protected:
+    std::string patient;
+
+public:
+    explicit Bill(const std::string& p) : patient(p) {}
+    virtual ~Bill() = default;
+
+    // TODO 1
+    virtual double total() const = 0;
+    virtual std::string type() const {
+        return "Bill";
+    }
+
+    void print() const {
+        std::cout << type() << ' ' << patient << ": " << total() << '\n';
+    }
+};
+
+class OutPatient : public Bill {
+    double consultation, tests;
+
+public:
+    OutPatient(const std::string& p, double c, double t)
+        : Bill(p), consultation(c), tests(t) {}
+
+    // TODO 2
+    double total() const override {
+        return consultation + tests;
+    }
+
+    std::string type() const override {
+        return "OP";
+    }
+};
+
+class InPatient : public Bill {
+    int days;
+    double perDay, surgery;
+
+public:
+    InPatient(const std::string& p, int d, double rate, double s)
+        : Bill(p), days(d), perDay(rate), surgery(s) {}
+
+    // TODO 3
+    double total() const override {
+        return days * perDay + surgery;
+    }
+
+    std::string type() const override {
+        return "IP";
+    }
+};
+
+int main() {
+    Bill* bills[] = {
+        new OutPatient("Ravi", 500, 1200),
+        new InPatient("Meena", 3, 2500, 40000)
+    };
+
+    double sum = 0;
+
+    for (Bill* b : bills) {
+        b->print();
+        sum += b->total();
+    }
+
+    std::cout << "Total " << sum << '\n';
+
+    for (Bill* b : bills)
+        delete b;
+}
+
+
+Output
+OP Ravi: 1700
+IP Meena: 47500
+Total 49200
+
+
+Verification by Hand
+Patient	Calculation	Amount
+Ravi	500 + 1200	1700
+Meena	3 × 2500 + 40000	47500
+Total	1700 + 47500	49200
+
+
+B1.2 – Compare with Your Design (1 Mark)
+The implementation follows the design in Part A. The abstract base class Bill contains the common patient data and virtual functions. OutPatient and InPatient override total() and type() to calculate and display their bill details.
+
+No major changes were required from the original design.
+
+B1.3 – Prove Runtime Binding (2 Marks)
+When virtual is removed from total(), runtime polymorphism is lost.
+
+Since Bill* is used to access the derived objects, the compiler cannot automatically call the derived total() function through the base pointer.
+
+If total() is changed to a normal non-virtual function, the base-class function is called instead of the derived function. If the base function is not defined, compilation may fail.
+
+Conclusion: Virtual functions allow the correct derived-class function to be selected at runtime.
+
+B1.4 – Prove the Virtual Destructor (2 Marks)
+The original code contains:
+virtual ~Bill() = default;
+
+
+If virtual is removed:
+~Bill() = default;
+
+
+Deleting derived objects through a Bill* causes undefined behaviour because the derived destructor is not guaranteed to execute.
+
+Run using AddressSanitizer:
+g++ -std=c++17 -Wall -Wextra -fsanitize=address -g main.cpp -o main
+./main
+
+
+Observation: Removing the virtual destructor causes undefined behaviour. The derived destructor may not execute correctly, which can lead to resource leaks. AddressSanitizer may or may not detect this particular issue.
+
+Conclusion: A virtual destructor is necessary when deleting derived objects through base-class pointers.
+
+Alternative Concept and Complexity Analysis
+If templates were used instead of virtual functions, each bill type could be stored in a separate container and processed using compile-time polymorphism.
+
+Example:
+template <typename T>
+void processBills(T bills[]) {
+    for (int i = 0; i < 2; i++) {
+        std::cout << bills[i].total() << '\n';
+    }
+}
+
+
+Feature	Virtual Functions	Templates
+Time per bill	O(1)	O(1)
+Virtual call overhead	Present	Absent
+Space	Vtable pointer per object	No vtable required
+Containers	Can store different bill types using base pointers	Usually separate containers for each type
+Flexibility	Different bill types in one list	Difficult to store mixed types in one list
+
+Conclusion: Templates can be faster because they avoid virtual function calls, but virtual functions are more suitable when the hospital must store and process different bill types together in one collection.
