@@ -1,0 +1,47 @@
+TASK A5 – DESIGN RECOVERY AND RETHROWING (4 Marks)
+A5.1 – Where to Catch (2 Marks)
+Exceptions should be caught at different levels depending on the responsibility of the function.
+- Billing functions: Detect invalid data and throw appropriate exceptions.
+- Service layer: Catch exceptions, log the error details and rethrow using throw; when further handling is required.
+- Main function: Catch exceptions, display a clear error message to the user and prevent the program from crashing.
+Example:
+try {
+    processBill();
+}
+catch (const BillingError& e) {
+    std::cout << "Billing error: " << e.what();
+    throw;
+}
+
+
+The throw; statement rethrows the same exception without changing its original type.
+A5.2 – No Leaks on Errors (2 Marks)
+Stack unwinding is the process in which local objects are automatically destroyed when an exception is thrown and control moves to a matching catch block.
+
+RAII (Resource Acquisition Is Initialization) uses constructors and destructors to manage resources automatically. Objects such as std::unique_ptr, std::vector and file objects release resources when they go out of scope.
+
+Therefore, RAII prevents memory leaks and ensures resources are released even when exceptions occur.
+
+Predict the Output
+Predicted Output:
+~f ~main caught 42
+
+
+Explanation:
+1. Guard g("f") is created inside f().
+2. throw 42 throws an exception.
+3. During stack unwinding, g is destroyed first, printing ~f.
+4. The Guard m("main") object is then destroyed, printing ~main.
+5. The catch(int x) handler catches the exception and prints caught 42.
+6. "not printed" does not appear because the exception transfers control away from that statement.
+
+Alternative Concept and Complexity Analysis
+If resources were released using delete inside every catch block instead of RAII, every error-handling path would need to manually release allocated resources.
+Feature	RAII	Manual delete in Catch Blocks
+Time complexity	Same	Same
+Code size	Less code	More code
+Resource release	Automatic	Manual
+Leak risk	Low	Higher
+New error paths	Safe automatically	Every path must be checked
+
+Conclusion: RAII is better because resources are automatically released during stack unwinding. It reduces code complexity and prevents memory leaks when new error paths are added.
