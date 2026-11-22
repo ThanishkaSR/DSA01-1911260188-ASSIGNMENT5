@@ -228,12 +228,3 @@ Using std::variant allows different bill types to be stored in one container, an
 - It is suitable when the set of bill types is known at compile time.
 Final conclusion: Virtual functions provide better extensibility, switch statements provide simple implementation, and std::variant provides efficient type-safe handling of a fixed set of bill types. Exceptions should be used for rare errors rather than frequent validation failures.
 
-Important for your submission
-The assignment specifically asks for measured timings. Run both benchmark programs using:
-g++ -std=c++17 -O2 main.cpp -o main
-./main
-
-
-Then replace the blank timings in the tables with your actual results. Don't submit invented timings—your compiler and computer will produce different results.
-
-If you send me your actual outputs, I'll turn them into the final B3 answer with completed tables and proper interpretation.
