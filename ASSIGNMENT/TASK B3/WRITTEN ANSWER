@@ -1,0 +1,239 @@
+TASK B3 – VIRTUAL FUNCTIONS vs SWITCH vs EXCEPTIONS: THE COST (8 Marks)
+B3.1 – Correctness on Small Data (2 Marks)
+The same 10 bills were processed using:
+1. Virtual functions
+2. A Bill structure with a type field and switch statement
+Both approaches produce the same total, confirming correctness.
+
+Conclusion: Both methods correctly calculate billing amounts. Virtual functions provide runtime polymorphism, while the switch approach selects the calculation based on the bill type.
+B3.2 – Increase the Data Size (2 Marks)
+The execution time of both implementations was measured for:
+- 1,000 bills
+- 1,000,000 bills
+- 10,000,000 bills
+The programs were compiled using -O2 optimization.
+Benchmark code
+#include <iostream>
+#include <vector>
+#include <chrono>
+using namespace std;
+using namespace chrono;
+
+struct Bill {
+    int type;
+    double a, b;
+};
+
+double switchTotal(const Bill& bill) {
+    switch (bill.type) {
+        case 1: return bill.a + bill.b;
+        case 2: return bill.a * bill.b;
+        default: return 0;
+    }
+}
+
+class BaseBill {
+public:
+    virtual double total() const = 0;
+    virtual ~BaseBill() = default;
+};
+
+class OPBill : public BaseBill {
+    double consultation, tests;
+public:
+    OPBill(double c, double t) : consultation(c), tests(t) {}
+    double total() const override {
+        return consultation + tests;
+    }
+};
+
+class IPBill : public BaseBill {
+    double days, rate;
+public:
+    IPBill(double d, double r) : days(d), rate(r) {}
+    double total() const override {
+        return days * rate;
+    }
+};
+
+int main() {
+    int sizes[] = {1000, 1000000, 10000000};
+
+    for (int n : sizes) {
+        vector<Bill> bills;
+        vector<OPBill> op;
+        vector<IPBill> ip;
+        vector<BaseBill*> ptr;
+
+        bills.reserve(n);
+        op.reserve(n);
+        ip.reserve(n);
+        ptr.reserve(n);
+
+        for (int i = 0; i < n; i++) {
+            if (i % 2 == 0) {
+                bills.push_back({1, 500, 1200});
+                op.emplace_back(500, 1200);
+            } else {
+                bills.push_back({2, 3, 2500});
+                ip.emplace_back(3, 2500);
+            }
+        }
+
+        // Create polymorphic objects
+        for (int i = 0; i < n; i++) {
+            if (i % 2 == 0)
+                ptr.push_back(&op[i / 2]);
+            else
+                ptr.push_back(&ip[i / 2]);
+        }
+
+        double sum1 = 0, sum2 = 0;
+
+        auto start1 = high_resolution_clock::now();
+
+        for (const Bill& b : bills)
+            sum1 += switchTotal(b);
+
+        auto end1 = high_resolution_clock::now();
+
+        auto start2 = high_resolution_clock::now();
+
+        for (BaseBill* b : ptr)
+            sum2 += b->total();
+
+        auto end2 = high_resolution_clock::now();
+
+        cout << "\nBills: " << n << '\n';
+        cout << "Switch total: " << sum1 << '\n';
+        cout << "Virtual total: " << sum2 << '\n';
+
+        cout << "Switch time: "
+             << duration_cast<milliseconds>(end1-start1).count()
+             << " ms\n";
+
+        cout << "Virtual time: "
+             << duration_cast<milliseconds>(end2-start2).count()
+             << " ms\n";
+    }
+}
+
+
+Results table
+Fill this table using the actual output from your compiler:
+Number of bills	Switch time	Virtual time
+1,000	___ ms	___ ms
+1,000,000	___ ms	___ ms
+10,000,000	___ ms	___ ms
+
+Observation: As the number of bills increases, total processing time increases approximately linearly. Both methods have \(O(n)\) time complexity.
+
+B3.3 – Cost of Exceptions (2 Marks)
+The time required to validate 1,000,000 bills was measured using return codes and exceptions for 0%, 1%, and 50% invalid bills.
+Code
+#include <iostream>
+#include <chrono>
+#include <stdexcept>
+using namespace std;
+using namespace chrono;
+
+bool validateReturn(bool invalid) {
+    return !invalid;
+}
+
+bool validateException(bool invalid) {
+    if (invalid)
+        throw runtime_error("Invalid bill");
+
+    return true;
+}
+
+int main() {
+    const int N = 1000000;
+
+    int percentages[] = {0, 1, 50};
+
+    for (int p : percentages) {
+        int invalidCount = N * p / 100;
+
+        auto start1 = high_resolution_clock::now();
+
+        int valid1 = 0;
+
+        for (int i = 0; i < N; i++) {
+            bool invalid = i < invalidCount;
+
+            if (validateReturn(invalid))
+                valid1++;
+        }
+
+        auto end1 = high_resolution_clock::now();
+
+        auto start2 = high_resolution_clock::now();
+
+        int valid2 = 0;
+
+        for (int i = 0; i < N; i++) {
+            bool invalid = i < invalidCount;
+
+            try {
+                if (validateException(invalid))
+                    valid2++;
+            }
+            catch (const exception&) {
+                // Invalid bill handled
+            }
+        }
+
+        auto end2 = high_resolution_clock::now();
+
+        cout << "\nInvalid bills: " << p << "%\n";
+
+        cout << "Return code time: "
+             << duration_cast<milliseconds>(end1-start1).count()
+             << " ms\n";
+
+        cout << "Exception time: "
+             << duration_cast<milliseconds>(end2-start2).count()
+             << " ms\n";
+
+        cout << "Valid bills: " << valid1 << " and " << valid2 << '\n';
+    }
+}
+
+
+Results table
+Invalid bills	Return-code time	Exception time
+0%	___ ms	___ ms
+1%	___ ms	___ ms
+50%	___ ms	___ ms
+
+Observation: Exceptions are efficient when errors are rare because normal execution does not require handling error conditions at every step. When invalid bills become frequent, throwing and catching exceptions increases execution time.
+
+B3.4 – Engineering Trade-Off (2 Marks)
+Comparison
+Approach	Advantages	Disadvantages
+Virtual functions	Easy to extend, no need to modify existing classes	Small virtual-call overhead
+Switch statement	Simple and may be faster for small fixed types	Must modify switch for every new bill type
+Exceptions	Clean error handling; suitable for rare errors	Expensive when errors occur frequently
+Return codes	Fast and predictable	Requires checking error values everywhere
+
+Conclusion
+Virtual functions are suitable when new bill types are frequently added because they follow the Open-Closed Principle. Switch statements are suitable when the bill types are fixed and simple. Exceptions are best used for exceptional conditions, while return codes are more suitable when errors occur frequently.
+Alternative: std::variant and std::visit
+Using std::variant allows different bill types to be stored in one container, and std::visit processes the correct bill type.
+- Time complexity: \(O(n)\)
+- Space complexity: approximately the size of the largest bill type plus a type tag per element.
+- It avoids virtual pointers and dynamic allocation.
+- It is suitable when the set of bill types is known at compile time.
+Final conclusion: Virtual functions provide better extensibility, switch statements provide simple implementation, and std::variant provides efficient type-safe handling of a fixed set of bill types. Exceptions should be used for rare errors rather than frequent validation failures.
+
+Important for your submission
+The assignment specifically asks for measured timings. Run both benchmark programs using:
+g++ -std=c++17 -O2 main.cpp -o main
+./main
+
+
+Then replace the blank timings in the tables with your actual results. Don't submit invented timings—your compiler and computer will produce different results.
+
+If you send me your actual outputs, I'll turn them into the final B3 answer with completed tables and proper interpretation.
