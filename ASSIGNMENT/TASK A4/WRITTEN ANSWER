@@ -1,0 +1,62 @@
+TASK A4 – DESIGN THE EXCEPTION STRATEGY (4 Marks)
+A4.1 – Identify the Errors (2 Marks)
+The following errors can occur in the hospital billing system:
+1. Negative charges – Bill amount is less than zero.
+2. Claim above cover – Insurance claim exceeds the policy cover limit.
+3. Unknown package – Invalid government scheme package code.
+4. Missing patient record – Patient details are not found.
+5. Memory allocation failure – Memory allocation fails during program execution.
+Exception Hierarchy
+std::exception
+      |
+      +-- BillingError
+      |       |
+      |       +-- NegativeChargeError
+      |       +-- MissingPatientError
+      |       +-- UnknownPackageError
+      |
+      +-- ClaimError
+      |       |
+      |       +-- ClaimAboveCoverError
+      |
+      +-- std::bad_alloc
+
+
+Custom exception classes are derived from std::exception so that errors can be handled using a common base class.
+A4.2 – Specify Exceptions (2 Marks)
+Functions that may throw:
+- total() – may throw if invalid charges are detected.
+- amountCovered() – may throw if the claim exceeds the cover limit.
+- findPatient() – may throw if the patient record is missing.
+- getPackageRate() – may throw if an unknown package is given.
+- Memory allocation – may throw std::bad_alloc.
+Functions that should not throw:
+- Destructors should be marked noexcept.
+- Cleanup functions should not throw exceptions.
+Example:
+virtual ~Bill() noexcept = default;
+
+
+Destructors should not throw because an exception during stack unwinding can cause program termination.
+
+Alternative Concept and Complexity Analysis
+Instead of exceptions, errors can be reported using return codes such as enum Status or bool.
+
+Example:
+enum Status {
+    SUCCESS,
+    NEGATIVE_CHARGE,
+    CLAIM_ERROR,
+    UNKNOWN_PACKAGE
+};
+
+
+A function returns a status code to indicate whether the operation was successful.
+Feature	Exceptions	Return Codes
+Normal path time	O(1)	O(1)
+Error path	Exception handling overhead	O(1)
+Extra space	Exception object during error	Status/message storage
+Code	Cleaner normal flow	More checks required
+Error handling	Centralized using catch	Must check every return value
+
+Conclusion: Exceptions are suitable for the billing system because they separate normal processing from error handling and allow errors to be handled at different levels of the program.
